@@ -1,0 +1,80 @@
+diff --git a/daemon/container.go b/daemon/container.go
+index ac565ae..d82f0ad 100644
+--- a/daemon/container.go
++++ b/daemon/container.go
+@@ -338,6 +338,8 @@ func (container *Container) Start() (err error) {
+ 		}
+ 	}()
+ 
++	fmt.Println("Sakshi... Setting up an OVS bridge")
++
+ 	if err := container.setupContainerDns(); err != nil {
+ 		return err
+ 	}
+diff --git a/vendor/src/github.com/docker/libcontainer/netlink/netlink_linux.go b/vendor/src/github.com/docker/libcontainer/netlink/netlink_linux.go
+index 3cc3cc9..fc19b9f 100644
+--- a/vendor/src/github.com/docker/libcontainer/netlink/netlink_linux.go
++++ b/vendor/src/github.com/docker/libcontainer/netlink/netlink_linux.go
+@@ -1191,6 +1191,8 @@ func DeleteBridge(name string) error {
+ // Add a slave to abridge device.  This is more backward-compatible than
+ // netlink.NetworkSetMaster and works on RHEL 6.
+ func AddToBridge(iface, master *net.Interface) error {
++	
++	fmt.Println("******Sakshi:: entering AddToBridge ******")
+ 	if len(master.Name) >= IFNAMSIZ {
+ 		return fmt.Errorf("Interface name %s too long", master.Name)
+ 	}
+diff --git a/vendor/src/github.com/docker/libcontainer/network/network.go b/vendor/src/github.com/docker/libcontainer/network/network.go
+index 40b25b1..934c1d3 100644
+--- a/vendor/src/github.com/docker/libcontainer/network/network.go
++++ b/vendor/src/github.com/docker/libcontainer/network/network.go
+@@ -4,8 +4,9 @@ package network
+ 
+ import (
+ 	"net"
+-
+ 	"github.com/docker/libcontainer/netlink"
++	"fmt"
++	"os/exec"
+ )
+ 
+ func InterfaceUp(name string) error {
+@@ -61,7 +62,17 @@ func SetInterfaceMaster(name, master string) error {
+ 	if err != nil {
+ 		return err
+ 	}
+-	return netlink.AddToBridge(iface, masterIface)
++	fmt.Println("Sakshi... OVS.. Adding PORTS")
++        if err := exec.Command("ovs-vsctl", "add-port", master, name).Run(); err != nil {
++                        fmt.Println("Sakshi... ERROR!! vsctl add port")
++			fmt.Println("Sakshi... ERROR!! calling regular AddToBridge")
++                        netlink.AddToBridge(iface, masterIface)
++			return err
++        
++        //return netlink.AddToBridge(iface, masterIface)
++	}
++	
++	return nil
+ }
+ 
+ func SetDefaultGateway(ip, ifaceName string) error {
+diff --git a/vendor/src/github.com/docker/libcontainer/network/veth.go b/vendor/src/github.com/docker/libcontainer/network/veth.go
+index 3d7dc87..31248e1 100644
+--- a/vendor/src/github.com/docker/libcontainer/network/veth.go
++++ b/vendor/src/github.com/docker/libcontainer/network/veth.go
+@@ -23,6 +23,10 @@ func (v *Veth) Create(n *Network, nspid int, networkState *NetworkState) error {
+ 		prefix     = n.VethPrefix
+ 		txQueueLen = n.TxQueueLen
+ 	)
++	fmt.Println("******Sakshi.. Entering Veth Create ******")	
++	
++	fmt.Println("*****Sakshi..Bridge name is********", bridge)
++	
+ 	if bridge == "" {
+ 		return fmt.Errorf("bridge is not specified")
+ 	}
+@@ -120,3 +124,4 @@ func createVethPair(prefix string, txQueueLen int) (name1 string, name2 string,
+ 
+ 	return
+ }
++
